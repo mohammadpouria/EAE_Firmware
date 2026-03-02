@@ -20,6 +20,12 @@ namespace eae::app {
         bool derateRequest{false};
     };
 
+    /**
+     * \brief Manages the thermal control logic and system states.
+     *
+     * Evaluates incoming sensor data, manages safety fault conditions (e.g., low coolant), 
+     * enforces minimum state durations, and computes the necessary PID outputs for the hardware.
+     */
     class StateMachine {
     private:
         SystemState currentState_{SystemState::INIT};

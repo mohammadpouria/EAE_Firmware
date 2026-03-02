@@ -2,6 +2,13 @@
 
 namespace eae::app {
 
+    /**
+     * \brief Proportional-Integral-Derivative (PID) controller implementation.
+     *
+     * This class provides a standard discrete-time PID control algorithm with 
+     * built-in anti-windup protection (via output clamping). It is used to smoothly 
+     * regulate hardware actuators like cooling fans and pumps based on thermal error over time.
+     */
     class PidController {
     private:
         float kp_, ki_, kd_;

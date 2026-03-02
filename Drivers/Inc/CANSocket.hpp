@@ -11,8 +11,16 @@ namespace eae::drivers {
         uint64_t ts_ms{}; // Timestamp in milliseconds
     };
 
+    /**
+     * \brief Manages the Linux SocketCAN network interface.
+     *
+     * This class encapsulates a raw CAN socket, providing RAII (Resource Acquisition 
+     * Is Initialization) semantics to ensure the network resource is safely opened 
+     * and closed without leaking file descriptors.
+     */
     class CANSocket {
     public:
+        
         explicit CANSocket(const std::string& ifname = "vcan0");
         ~CANSocket();
 

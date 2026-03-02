@@ -1,6 +1,13 @@
 #pragma once
 #include <cstdint>
 
+/**
+ * \brief Data structures and constants for CAN bus communication.
+ *
+ * This file contains the standardized data structures used to pass decoded 
+ * sensor information from the low-level CAN drivers up to the application-level 
+ * control logic, cleanly decoupling the hardware from the State Machine.
+ */
 namespace eae::drivers {
     // CAN IDs for cooling loop instrumentation
     enum CAN_ID : uint32_t {

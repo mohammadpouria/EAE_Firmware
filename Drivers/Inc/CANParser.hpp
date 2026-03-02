@@ -13,6 +13,12 @@ namespace eae::drivers {
         double setpoint_c{eae::config::DEFAULT_SETPOINT_C};
     };
 
+    /**
+     * \brief Parses raw CAN bus frames into scaled engineering values.
+     *
+     * This class decodes hexadecimal payloads (e.g., temperatures, status flags) 
+     * into standard C++ data types, applying the necessary scaling factors and offsets.
+     */
     class CANParser {
     public:
         CANParser() = default;
