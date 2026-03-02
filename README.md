@@ -1,32 +1,28 @@
-# EAE Firmware Challenge: Active cooling loop for an inverter and DC-DC
+# EAE Firmware - Thermal Control System
 
-This repository contains the firmware logic and simulation environment for the EAE Firmware Challenge. 
+A C++17 embedded Linux firmware application designed to simulate and control a heavy-machinery cooling loop. This project demonstrates production-grade firmware architecture, including hardware abstraction, finite state machines, discrete PID control, and real-time SocketCAN networking.
 
-It implements a C++ control system for a mobile heavy-duty EV cooling loop, managing an EMP WP32 water pump and a SPAL VA97 brushless fan to maintain optimal operating temperatures for the Traction Inverter and DC-DC converter.
+## 🏗️ Architecture
 
-## 🎯 Challenge Requirements Fulfilled
+The codebase strictly follows a modular, hardware-agnostic design pattern commonly used in bare-metal and RTOS environments, separated into two primary domains:
 
-This project was built to satisfy the specific architectural requirements of Section 7.1:
+* **`Drivers/` (Hardware Abstraction Layer):** Handles all low-level Linux system calls and network interactions. 
+  * `CANSocket`: An object-oriented wrapper around the raw Linux SocketCAN API.
+  * `CANParser`: A thread-safe data decoder that translates raw J1939-style hex bytes into clean engineering units.
+* **`Core/` (Application Logic):** 100% hardware-agnostic control logic, easily portable to an STM32 or FreeRTOS environment.
+  * `StateMachine`: Manages system safety, pump priming timers, and fault handling (e.g., sudden coolant loss).
+  * `PidController`: A discrete proportional-integral-derivative controller featuring integral anti-windup clamping for dynamic fan and pump speed control.
 
-1. **Simulated CAN Bus (J1939):** Implements a mock Hardware Abstraction Layer (HAL) to demonstrate bare-metal byte-packing and hardware-level register simulation.
-2. **PID Loop:** A continuous discrete PID controller manages the pump and fan's PWM duty cycles, featuring integral anti-windup clamping to prevent overshoot.
-3. **State Machine:** A robust state machine (`INIT`, `IDLE`, `ACTIVE_COOLING`, `FAULT`) handles system transitions, safety cutoffs (low coolant), and thermal hysteresis to prevent actuator chatter.
-4. **Command Line Arguments:** Setpoints and ignition states are passed dynamically at runtime.
-5. **CMake Build System:** Fully managed CMake pipeline handling both the application and test executables.
-6. **Linux/MSYS2 Shell Script:** A provided `run.sh` automates the build process, test execution, and simulation launch.
-7. **GTest Unit Testing:** Automated unit tests verify the mathematical integrity of the PID controller.
-8. **No Shipped Dependencies:** GTest is dynamically fetched and statically linked at configure-time via CMake's `FetchContent` module.
+## ⚙️ Requirements
 
-## 📂 Project Structure
+To build and simulate this firmware, you need a Linux environment (Ubuntu or WSL2) with the following tools installed:
 
-```text
-EAE_Firmware/
-├── CMakeLists.txt          # Primary build configuration
-├── run.sh                  # Build, test, and execution script
-├── src/
-│   ├── main.cpp            # Application entry & CLI parser
-│   ├── StateMachine.h/cpp  # Core safety & state logic
-│   ├── PidController.h/cpp # Mathematical control loop
-│   └── CanBus.h/cpp        # Mock HAL & J1939 formatting
-└── tests/
-    └── test_pid.cpp        # Google Test suite
+* A C++17 compatible compiler (`g++` or `clang`)
+* CMake (v3.14+)
+* `can-utils` (for network simulation)
+* `iproute2` (for `vcan0` setup)
+
+To install the dependencies on Ubuntu/WSL:
+```bash
+sudo apt update
+sudo apt install build-essential cmake can-utils

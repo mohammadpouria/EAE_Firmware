@@ -2,6 +2,8 @@
 build/
 out/
 bin/
+.cache/
+compile_commands.json
 
 # OS generated files
 .DS_Store
@@ -10,3 +12,7 @@ Thumbs.db
 # IDE specific files
 .vscode/
 .idea/
+*.swp
+
+# Logs and debug files
+*.log
