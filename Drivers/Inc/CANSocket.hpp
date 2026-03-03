@@ -2,12 +2,14 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <array>
 
 namespace eae::drivers {
 
     struct CANFrame {
         uint32_t id{};
-        std::vector<uint8_t> data;
+        uint8_t dlc{0}; // Data Length Code (how many bytes are actually used)
+        std::array<uint8_t, 8> payload{};
         uint64_t ts_ms{}; // Timestamp in milliseconds
     };
 

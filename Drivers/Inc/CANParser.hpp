@@ -1,6 +1,6 @@
 #pragma once
 #include "CANSocket.hpp"
-#include "CANDefs.hpp"
+#include "CANParam.hpp"
 #include "Config.hpp"
 #include <mutex>
 
@@ -10,7 +10,7 @@ namespace eae::drivers {
         double temperature_c{25.0};
         bool level_ok{true};
         bool pump_running{false};
-        double setpoint_c{eae::config::DEFAULT_SETPOINT_C};
+        double setpoint_c{config::DEFAULT_SETPOINT_C};
     };
 
     /**
@@ -27,7 +27,7 @@ namespace eae::drivers {
         bool parseFrame(const CANFrame& frame);
 
         // Thread-safe Asynchronous read of the latest data
-        ParsedData latest() const;
+        ParsedData read() const;
 
     private:
         mutable std::mutex mtx_;

@@ -7,7 +7,7 @@ namespace eae::app {
     StateMachine::StateMachine() 
         : currentState_(SystemState::INIT),
           state_timer_ms_(0.0),
-          fanPid(5.0, 0.5, 0.1, 0.0, 100.0),   // Kp, Ki, Kd, Min, Max
+          fanPid(3.5, 0.1, 0.05, 0.0, 100.0),   // Kp, Ki, Kd, Min, Max
           pumpPid(10.0, 0.0, 0.0, 20.0, 100.0) // P-only for pump. Minimum 20% to keep flow alive.
     {}
 

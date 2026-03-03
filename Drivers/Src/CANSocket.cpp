@@ -59,8 +59,9 @@ namespace eae::drivers {
         ssize_t nbytes = recv(sockfd_, &linux_frame, sizeof(struct can_frame), MSG_DONTWAIT);
         
         if (nbytes == sizeof(struct can_frame)) {
-            rx_frame.id = linux_frame.can_id & CAN_ERR_MASK; // Strip extended flags if any
-            rx_frame.data.assign(linux_frame.data, linux_frame.data + linux_frame.can_dlc); // Copy data bytes
+            rx_frame.id = linux_frame.can_id & CAN_EFF_MASK; // Strip extended flags if any
+            rx_frame.dlc = linux_frame.can_dlc; // Data Length Code
+            std::copy(linux_frame.data, linux_frame.data + linux_frame.can_dlc, rx_frame.payload.begin()); // Copy data bytes
             
             // Tag with current timestamp
             auto now = std::chrono::steady_clock::now().time_since_epoch();
@@ -77,8 +78,8 @@ namespace eae::drivers {
         std::memset(&linux_frame, 0, sizeof(struct can_frame)); // Clear the structure
         
         linux_frame.can_id = tx_frame.id; // Set the CAN ID
-        linux_frame.can_dlc = std::min(static_cast<uint8_t>(tx_frame.data.size()), static_cast<uint8_t>(8)); // Max 8 bytes for CAN
-        std::copy(tx_frame.data.begin(), tx_frame.data.begin() + linux_frame.can_dlc, linux_frame.data); // Copy data bytes
+        linux_frame.can_dlc = tx_frame.dlc; // Set the Data Length Code
+        std::copy(tx_frame.payload.begin(), tx_frame.payload.begin() + linux_frame.can_dlc, linux_frame.data); // Copy data bytes
 
         ssize_t nbytes = write(sockfd_, &linux_frame, sizeof(struct can_frame));
         return (nbytes == sizeof(struct can_frame));

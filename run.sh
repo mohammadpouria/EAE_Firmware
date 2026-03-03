@@ -39,6 +39,14 @@ cansend vcan0 101#01
 cansend vcan0 102#01
 sleep 4 
 
+echo -e "\n[SIM] Injecting Heat: 60.5°C (ID: 0x100 -> Hex: 0x17AC)..."
+cansend vcan0 100#17AC
+sleep 3 
+
+echo -e "\n[SIM] Injecting Heat: 72.0°C (ID: 0x100 -> Hex: 0x1C20)..."
+cansend vcan0 100#1C20
+sleep 3 
+
 echo -e "\n[SIM] Injecting Heat: 85.5°C (ID: 0x100 -> Hex: 0x2166)..."
 cansend vcan0 100#2166
 sleep 3 

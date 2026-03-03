@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
     // Inject the CLI setpoint into the parser using a mock CAN frame
     drivers::CANFrame override_frame;
     override_frame.id = drivers::CAN_ID_SETPOINT_OVERRIDE;
-    override_frame.data = { static_cast<uint8_t>(setpoint) };
+    override_frame.payload = { static_cast<uint8_t>(setpoint) };
     can_parser.parseFrame(override_frame);
     // can_socket.send_frame(override_frame); 
     
@@ -61,6 +61,7 @@ int main(int argc, char* argv[]) {
 
     // Main Control Loop Timing setup (200ms per Config.hpp)
     const auto loop_dt = std::chrono::milliseconds(static_cast<int>(config::CONTROL_DT_SEC * 1000));
+    std::string last_log_line = "";
 
     while (keep_running) {
         auto loop_start_time = std::chrono::steady_clock::now();
@@ -73,7 +74,7 @@ int main(int argc, char* argv[]) {
         }
 
         // --- Get latest sanitized sensor data ---
-        drivers::ParsedData sensors = can_parser.latest();
+        drivers::ParsedData sensors = can_parser.read();
 
         // --- Execute Control Logic ---
         app::SystemOutputs outputs = state_machine.run_step(sensors, config::CONTROL_DT_SEC);
@@ -82,19 +83,29 @@ int main(int argc, char* argv[]) {
         // Pack the outputs into the CAN_ID_STATUS (0x300)
         drivers::CANFrame tx_frame;
         tx_frame.id = drivers::CAN_ID_STATUS;
-        tx_frame.data.push_back(static_cast<uint8_t>(outputs.pumpSpeedPct));
-        tx_frame.data.push_back(static_cast<uint8_t>(outputs.fanSpeedPct));
-        tx_frame.data.push_back(outputs.derateRequest ? 1 : 0);
+        tx_frame.dlc = 3; // We will send 3 bytes: pump speed, fan speed, derate flag
+        tx_frame.payload[0] = static_cast<uint8_t>(outputs.pumpSpeedPct);
+        tx_frame.payload[1] = static_cast<uint8_t>(outputs.fanSpeedPct);
+        tx_frame.payload[2] = outputs.derateRequest ? 1 : 0;
         
         can_socket.send_frame(tx_frame);
 
         // --- Console Output (Dashboard style) ---
-        std::cout << "[CTRL] State=" << std::left << std::setw(15) << state_machine.getStateName()
+        std::ostringstream current_log;
+        std::string new_log_line;
+        current_log << "[CTRL] State=" << std::left << std::setw(15) << state_machine.getStateName()
                   << " T=" << std::setw(4) << sensors.temperature_c << "°C  "
                   << " Fan=" << std::setw(3) << static_cast<int>(outputs.fanSpeedPct) << "%  "
                   << " Pump=" << std::setw(3) << static_cast<int>(outputs.pumpSpeedPct) << "%  "
                   << " Derate=" << (outputs.derateRequest ? "Y" : "N") 
                   << "\n"; 
+        new_log_line = current_log.str();
+
+        // Only print new log lines to avoid spamming the console
+        if (new_log_line != last_log_line) {
+            std::cout << new_log_line;
+            last_log_line = new_log_line;
+        }
 
         // --- Precision Sleep ---
         // Calculate how long the logic took to run, and only sleep for the remainder of the 200ms
