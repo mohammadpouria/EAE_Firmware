@@ -56,12 +56,14 @@ int main(int argc, char* argv[]) {
     can_parser.parseFrame(override_frame);
     // can_socket.send_frame(override_frame); 
     
-    // Initialize App Core (Logic)
+    // Initialize App Core
     app::StateMachine state_machine;
+    drivers::ParsedData sensors;
+    app::SystemOutputs outputs;
 
     // Main Control Loop Timing setup (200ms per Config.hpp)
     const auto loop_dt = std::chrono::milliseconds(static_cast<int>(config::CONTROL_DT_SEC * 1000));
-    std::string last_log_line = "";
+    std::string log_line = "";
 
     while (keep_running) {
         auto loop_start_time = std::chrono::steady_clock::now();
@@ -71,41 +73,34 @@ int main(int argc, char* argv[]) {
         drivers::CANFrame rx_frame;
         while (can_socket.recv_frame(rx_frame)) {
             can_parser.parseFrame(rx_frame);
+            sensors = can_parser.read(); // Update the sensors struct with the latest data
         }
 
-        // --- Get latest sanitized sensor data ---
-        drivers::ParsedData sensors = can_parser.read();
-
         // --- Execute Control Logic ---
-        app::SystemOutputs outputs = state_machine.run_step(sensors, config::CONTROL_DT_SEC);
+        app::SystemOutputs outputs_tmp = state_machine.run_step(sensors, config::CONTROL_DT_SEC);
 
         // --- Transmit Actuator Commands ---
         // Pack the outputs into the CAN_ID_STATUS (0x300)
-        drivers::CANFrame tx_frame;
-        tx_frame.id = drivers::CAN_ID_STATUS;
-        tx_frame.dlc = 3; // We will send 3 bytes: pump speed, fan speed, derate flag
-        tx_frame.payload[0] = static_cast<uint8_t>(outputs.pumpSpeedPct);
-        tx_frame.payload[1] = static_cast<uint8_t>(outputs.fanSpeedPct);
-        tx_frame.payload[2] = outputs.derateRequest ? 1 : 0;
-        
-        can_socket.send_frame(tx_frame);
+        if (outputs_tmp != outputs) {
+            outputs = outputs_tmp;
+            drivers::CANFrame tx_frame;
+            tx_frame.id = drivers::CAN_ID_STATUS;
+            tx_frame.dlc = 3; // We will send 3 bytes: pump speed, fan speed, derate flag
+            tx_frame.payload[0] = static_cast<uint8_t>(outputs.pumpSpeedPct);
+            tx_frame.payload[1] = static_cast<uint8_t>(outputs.fanSpeedPct);
+            tx_frame.payload[2] = outputs.derateRequest ? 1 : 0;
 
-        // --- Console Output (Dashboard style) ---
-        std::ostringstream current_log;
-        std::string new_log_line;
-        current_log << "[CTRL] State=" << std::left << std::setw(15) << state_machine.getStateName()
-                  << " T=" << std::setw(4) << sensors.temperature_c << "°C  "
-                  << " Fan=" << std::setw(3) << static_cast<int>(outputs.fanSpeedPct) << "%  "
-                  << " Pump=" << std::setw(3) << static_cast<int>(outputs.pumpSpeedPct) << "%  "
-                  << " Derate=" << (outputs.derateRequest ? "Y" : "N") 
-                  << "\n"; 
-        new_log_line = current_log.str();
+            can_socket.send_frame(tx_frame); // Send the control commands back on the CAN bus
 
-        // Only print new log lines to avoid spamming the console
-        if (new_log_line != last_log_line) {
-            std::cout << new_log_line;
-            last_log_line = new_log_line;
+            // --- Console Output (Dashboard style) ---
+            std::cout << "[CTRL] State=" << std::left << std::setw(15) << state_machine.getStateName()
+                    << " T=" << std::setw(4) << sensors.temperature_c << "°C  "
+                    << " Fan=" << std::setw(3) << static_cast<int>(outputs.fanSpeedPct) << "%  "
+                    << " Pump=" << std::setw(3) << static_cast<int>(outputs.pumpSpeedPct) << "%  "
+                    << " Derate=" << (outputs.derateRequest ? "Y" : "N") 
+                    << "\n"; 
         }
+        
 
         // --- Precision Sleep ---
         // Calculate how long the logic took to run, and only sleep for the remainder of the 200ms

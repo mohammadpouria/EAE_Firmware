@@ -18,6 +18,20 @@ namespace eae::app {
         double pumpSpeedPct{0.0};
         double fanSpeedPct{0.0};
         bool derateRequest{false};
+
+        // Define the != operator
+        bool operator!=(const SystemOutputs& other) const {
+            // Define our tolerance (e.g., 0.001%)
+            const double EPSILON = 0.001; 
+
+            return (std::abs(pumpSpeedPct - other.pumpSpeedPct) > EPSILON) ||
+                (std::abs(fanSpeedPct - other.fanSpeedPct) > EPSILON) ||
+                (derateRequest != other.derateRequest);
+        }
+
+        bool operator==(const SystemOutputs& other) const {
+            return !(*this != other);
+        }
     };
 
     /**
